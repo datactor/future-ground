@@ -1,0 +1,12 @@
+# Binaries
+/target
+
+# Backup files
+.DS_Store
+
+# By Cargo
+Cargo.lock
+
+# IDEs
+.idea/
+.vscode/
