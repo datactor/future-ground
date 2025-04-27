@@ -1,4 +1,4 @@
-use future_ground::{quiz, quiz_2};
+use future_ground::{quiz, quiz_2, quiz_3, tasks};
 use futures::FutureExt;
 use std::future::Future;
 use std::pin::Pin;
@@ -10,9 +10,24 @@ use tokio::task::JoinHandle;
 async fn main() {
     // let output = return_first(Duration::from_secs(10), Duration::from_secs(8)).await;
     // let output = quiz::return_first(1, "input2".to_string());
-    let output = quiz_2::return_first().await;
+    // let output = quiz_2::return_first().await;
 
-    println!("output: {:?}", output);
+    let rt = quiz_3::MyRuntime::new();
+    rt.spawn_task(|| {
+        tasks::task_1(1);
+    });
+
+    rt.spawn_task(|| {
+        tasks::task_2("hello".to_string());
+    });
+
+    rt.spawn_task(|| {
+        tasks::heavy_loop();
+    });
+
+    rt.select_one();
+
+    // println!("output: {:?}", output);
 }
 
 pub struct MyStruct {

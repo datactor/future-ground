@@ -7,15 +7,12 @@ use std::task::{Context, Poll, Waker};
 use std::thread;
 use std::time::Duration;
 
+use crate::tasks;
+
 enum State<T> {
     Init(Option<Box<dyn FnOnce() -> T + Send>>),
     Running,
     Done(Option<T>),
-}
-
-struct Inner<T> {
-    state: State<T>,
-    waker: Option<Waker>,
 }
 
 pub struct MyFuture<T> {
@@ -34,6 +31,11 @@ impl<T: Send + 'static> MyFuture<T> {
 
         MyFuture { shared }
     }
+}
+
+struct Inner<T> {
+    state: State<T>,
+    waker: Option<Waker>,
 }
 
 impl<T: Send + 'static> Future for MyFuture<T> {
@@ -73,30 +75,30 @@ impl<T: Send + 'static> Future for MyFuture<T> {
     }
 }
 
-fn task_1(input: usize) -> usize {
-    thread::sleep(Duration::from_secs(1));
-    input
-}
-
-fn task_2(input: String) -> String {
-    thread::sleep(Duration::from_secs(2));
-    input
-}
-
-fn task_3(input: String) -> String {
-    input
-}
-
 pub async fn return_first() -> String {
-    let fut1 = MyFuture::new(|| task_1(1).to_string()).fuse();
-    let fut2 = MyFuture::new(|| task_2("hello".into())).fuse();
-    let fut3 = MyFuture::new(|| task_3("world".into())).fuse();
+    let fut1 = MyFuture::new(|| tasks::task_1(1).to_string()).fuse();
+    let fut2 = MyFuture::new(|| tasks::task_2("hello".into())).fuse();
+    // let fut3 = MyFuture::new(|| tasks::task_3("world".into())).fuse();
 
-    futures::pin_mut!(fut1, fut2, fut3);
+    futures::pin_mut!(fut1, fut2);
 
     select! {
         result = fut1 => result,
         result = fut2 => result,
-        result = fut3 => result,
+        // result = fut3 => result,
     }
 }
+
+pub trait Pollable {
+    type Output: Send + 'static;
+
+    fn poll(self) -> PollResult<Self::Output>;
+}
+
+pub enum PollResult<T>
+where
+    T: Send + 'static,
+{
+    Pending,
+    Ready(T),
+} //     R: Pollable + Send + 'static, {}
